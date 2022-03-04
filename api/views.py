@@ -4,6 +4,7 @@ from rest_framework.settings import api_settings
 from django.contrib.auth import get_user_model
 from api import serializers
 
+
 class UserProfileViewSet(viewsets.ModelViewSet):
     """
     View set for User profile

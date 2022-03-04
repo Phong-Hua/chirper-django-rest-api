@@ -6,7 +6,7 @@ from core import models
 
 
 class UserAdmin(BaseUserAdmin):
-    ordering =['id']
+    ordering = ['id']
     list_display = ['email', 'name', 'avatarURL']
 
     fieldsets = (
@@ -33,7 +33,6 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('email', 'name', 'password1', 'password2', 'avatarURL')
         }),
     )
-
 
 
 admin.site.register(models.UserProfile, UserAdmin)

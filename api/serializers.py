@@ -1,4 +1,3 @@
-import email
 from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
 
@@ -23,11 +22,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 }
             }
         }
+
     # Define create method
     def create(self, validated_data):
         """
         Create a user with data
         """
+
         user = get_user_model().objects.create_user(
             email=validated_data['email'],
             name=validated_data['name'],
@@ -43,9 +44,10 @@ class LoginSerializer(serializers.Serializer):
     """
     Custom Serializer for login view
     """
+
     email = serializers.CharField(max_length=255)
     password = serializers.CharField(
-        style = {
+        style={
             'input_type': 'password'
         }
     )

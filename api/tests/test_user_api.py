@@ -7,7 +7,8 @@ from rest_framework.test import APIClient
 
 # Build url for Create user: api:userprofile-list
 # api is app name in urls.py
-# userprofile: is the custom model for our database. Since we use ModelViewSet, we dont
+# userprofile: is the custom model for our database.
+# Since we use ModelViewSet, we dont
 # specify basename, so we will use custom model name
 # list: method for post, get
 CREATE_USER_URL = reverse('api:userprofile-list')
@@ -18,12 +19,13 @@ class PublicApiTests(TestCase):
     """
     Test api that do not require authentication
     """
-    
+
     def setUp(self) -> None:
         self.client = APIClient()
 
     def sample_payload(self, email='user1@test.com',
-        password='testpass123', name='user1', avatarURL='user1avatar'):
+                       password='testpass123', name='user1',
+                       avatarURL='user1avatar'):
         return {
             'email': email,
             'password': password,
@@ -43,7 +45,9 @@ class PublicApiTests(TestCase):
         Make the post request to login in json format.
         Return the response
         """
-        return self.client.post(LOGIN_URL, {'email': email, 'password': password}, format='json')
+        return self.client.post(LOGIN_URL,
+                                {'email': email, 'password': password},
+                                format='json')
 
     def test_create_valid_user_success(self):
         """
@@ -216,7 +220,7 @@ class PublicApiTests(TestCase):
         # Create user
         get_user_model().objects.create_user(**payload)
         # Login using the payload
-        res = self.create_login_request(email=payload['email'], password=payload['password'])
+        res = self.create_login_request(payload['email'], payload['password'])
         # Expect status 200
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         # Expect return the token
@@ -233,7 +237,7 @@ class PublicApiTests(TestCase):
         # Modify the email to be different to the one in payload
         payload['email'] = 'notexistinguser@gmail.com'
         # Login using the payload
-        res = self.create_login_request(email=payload['email'], password=payload['password'])
+        res = self.create_login_request(payload['email'], payload['password'])
         # Assert status 401
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -248,7 +252,7 @@ class PublicApiTests(TestCase):
         # Modify the password to be different to the one in payload
         payload['password'] = 'wrongpass123'
         # Login using the payload
-        res = self.create_login_request(email=payload['email'], password=payload['password'])
+        res = self.create_login_request(payload['email'], payload['password'])
         # Assert status 401
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -261,7 +265,7 @@ class PublicApiTests(TestCase):
         # Create user
         get_user_model().objects.create_user(**payload)
         # Login using the payload
-        res = self.create_login_request(email=None, password=payload['password'])
+        res = self.create_login_request(None, payload['password'])
         # Assert status 400
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -274,7 +278,7 @@ class PublicApiTests(TestCase):
         # Create user
         get_user_model().objects.create_user(**payload)
         # Login using the payload
-        res = self.create_login_request(email=payload['email'], password=None)
+        res = self.create_login_request(payload['email'], None)
         # Assert status 400
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
