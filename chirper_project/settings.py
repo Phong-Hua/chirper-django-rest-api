@@ -40,6 +40,8 @@ INSTALLED_APPS = [
 
     # Add rest_framework
     'rest_framework',
+    # Add rest_framework authtoken
+    'rest_framework.authtoken',
     # Add core
     'core',
 ]
