@@ -11,8 +11,22 @@ from rest_framework.test import APIClient
 # Since we use ModelViewSet, we dont
 # specify basename, so we will use custom model name
 # list: method for post, get
-CREATE_USER_URL = reverse('api:userprofile-list')
+CREATE_USER_URL = reverse('api:user-create')
 LOGIN_URL = reverse('api:login')
+LIST_USER_URL = reverse('api:user-list')
+
+
+def user_detail_url(user_id):
+    """
+    Return user detail url of a specific user
+    """
+    return reverse('api:user-details/', args=[user_id])
+
+# def user_manage_url(user_id):
+#     """
+#     Return user manage url of a specific user
+#     """
+#     return reverse('api:user/manage/', args=[user_id])
 
 
 class PublicApiTests(TestCase):
@@ -289,3 +303,95 @@ class PublicApiTests(TestCase):
         res = self.client.get(LOGIN_URL)
         # Expect status 405
         self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_list_all_users_without_authentication(self):
+        """
+        Test list all users without authentication.
+        This should fail
+        """
+        res = self.client.get(LIST_USER_URL)
+        # Expect status unauthorized
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_retrieve_user_without_authentication(self):
+        """
+        Test retrieve a user without authentication.
+        This should fail
+        """
+        payload = self.sample_payload()
+        # Create user
+        user = get_user_model().objects.create_user(**payload)
+        # Create user detail url of this user
+        user_url = user_detail_url(user.id)
+        # Make get request
+        res = self.client.get(user_url)
+        # Expect status 401
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    # def test_update_user_without_authentication(self):
+    #     """
+    #     Test update a user without authentication.
+    #     This should fail
+    #     """
+
+    # def test_partial_update_without_authentication(self):
+    #     """
+    #     Test partial update a user without authentication.
+    #     This should fail
+    #     """
+
+    # def test_delete_user_without_authentication(self):
+    #     """
+    #     Test delete a user without authentication.
+    #     This should fail
+    #     """
+
+
+class PrivateApiTests(TestCase):
+    """
+    Test require authentication
+    """
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user = self.create_sample_user()
+        # Force the user authenticated
+        self.client.force_authenticate(user=self.user)
+
+    def create_sample_user(self, email='user1@test.com',
+                           password='testpass123', name='user1'):
+        """
+        Create and return sample user
+        """
+        return get_user_model().objects.create_user(
+            email=email, password=password, name=name
+        )
+
+    def test_list_all_users_with_authentication(self):
+        """
+        Test list all users with authentication.
+        This should success
+        """
+        # Make get request
+        res = self.client.get(LIST_USER_URL)
+        # Expect status 200
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_retrieve_user_with_authentication(self):
+        """
+        Test retrieve a user with authentication
+        """
+        # Create user url
+        user_url = user_detail_url(self.user.id)
+        # Make get request
+        res = self.client.get(user_url)
+        # Expect status 200
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        user = get_user_model().objects.get(**res.data)
+
+        # Expect the user is the same as self.user
+        self.assertEqual(self.user.email, user.email)
+        self.assertEqual(self.user.name, user.name)
+        # Expect the password is not return
+        self.assertNotIn('password', res.data)
