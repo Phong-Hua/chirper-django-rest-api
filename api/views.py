@@ -53,6 +53,19 @@ class UpdateUserAPIView(generics.UpdateAPIView):
                           permissions.ManageOwnProfilePermission)
 
 
+class DeleteUserAPIView(generics.DestroyAPIView):
+    """
+    View for delete a user
+    """
+    serialize_class = serializers.UserProfileSerializer
+    queryset = get_user_model().objects.all()
+    # Allow request accept token
+    # authentication_classes and permission_classes always go together
+    authentication_classes = (TokenAuthentication, )
+    permission_classes = (IsAuthenticated,
+                          permissions.ManageOwnProfilePermission)
+
+
 class UserLoginView(ObtainAuthToken):
     """
     View for login

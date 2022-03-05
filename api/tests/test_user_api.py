@@ -25,6 +25,13 @@ def user_update_url(user_id):
     return reverse('api:user-update/', args=[user_id])
 
 
+def user_delete_url(user_id):
+    """
+    Return user delete user of a specific user
+    """
+    return reverse('api:user-delete/', args=[user_id])
+
+
 class PublicApiTests(TestCase):
     """
     Test api that do not require authentication
@@ -222,6 +229,26 @@ class PublicApiTests(TestCase):
         # Expect bad request status
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
+    # def test_create_user_no_avatarURL(self):
+    #     """
+    #     Test create user with no avatar.
+    #     Since avatar is not requried.
+    #     This should success
+    #     """
+    #     payload = self.sample_payload()
+    #     payload.pop('avatarURL', None)
+    #     # Make post request
+    #     res = self.create_user_request(payload)
+    #     # Expect 201 status
+    #     self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+    #     user = get_user_model().objects.get(**res.data)
+    #     # Expect other info match
+    #     self.assertEqual(user.email, payload['email'])
+    #     self.assertEqual(user.name, payload['name'])
+    #     self.assertTrue(user.check_password(payload['password']))
+    #     # Expect the avatarURL is an empty string
+    #     self.assertEqual(user.avatarURL, '')
+
     def test_login_with_valid_credential(self):
         """
         Test user can login succesfully.
@@ -363,7 +390,7 @@ class PublicApiTests(TestCase):
         # Create user
         user = get_user_model().objects.create_user(**payload)
         # Make delete request
-        res = self.client.delete(user_update_url(user.id))
+        res = self.client.delete(user_delete_url(user.id))
         # Expect status 401
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -643,9 +670,32 @@ class PrivateApiTests(TestCase):
         Test the login user delete their own info.
         This should pass
         """
+        # Make delete request
+        res = self.client.delete(user_delete_url(self.user.id))
+        # Expect response is 204
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        # Expect the user do not exist
+        user_exist = get_user_model().objects.filter(id=self.user.id).exists()
+        self.assertFalse(user_exist)
 
     def test_delete_second_user_with_authentication(self):
         """
         Test the login user delete info of another user.
         This should fail.
         """
+        payload = {
+            'email': 'user2@test.com',
+            'name': 'user2',
+            'password': 'user2pass',
+            'avatarURL': 'user2Avatar'
+        }
+        # Create another user
+        another_user = self.create_sample_user(**payload)
+        # Make delete request
+        res = self.client.delete(user_delete_url(another_user.id))
+        # Expect status 403
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        # Expect another_user still exist
+        user_exist = get_user_model().objects.\
+            filter(id=another_user.id).exists()
+        self.assertTrue(user_exist)
