@@ -5,12 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-# Build url for Create user: api:userprofile-list
-# api is app name in urls.py
-# userprofile: is the custom model for our database.
-# Since we use ModelViewSet, we dont
-# specify basename, so we will use custom model name
-# list: method for post, get
+
 CREATE_USER_URL = reverse('api:user-create')
 LOGIN_URL = reverse('api:login')
 LIST_USER_URL = reverse('api:user-list')
@@ -22,11 +17,12 @@ def user_detail_url(user_id):
     """
     return reverse('api:user-details/', args=[user_id])
 
-# def user_manage_url(user_id):
-#     """
-#     Return user manage url of a specific user
-#     """
-#     return reverse('api:user/manage/', args=[user_id])
+
+def user_update_url(user_id):
+    """
+    Return user update url of a specific user
+    """
+    return reverse('api:user-update/', args=[user_id])
 
 
 class PublicApiTests(TestCase):
@@ -328,23 +324,48 @@ class PublicApiTests(TestCase):
         # Expect status 401
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    # def test_update_user_without_authentication(self):
-    #     """
-    #     Test update a user without authentication.
-    #     This should fail
-    #     """
+    def test_update_user_without_authentication(self):
+        """
+        Test update a user without authentication.
+        This should fail
+        """
+        payload = self.sample_payload()
+        # Create user
+        user = get_user_model().objects.create_user(**payload)
+        # Edit the payload
+        payload['email'] = 'user1edit@test.com'
+        payload['name'] = payload['name'] + 'edit'
+        # Make put request
+        res = self.client.put(user_update_url(user.id), payload)
+        # Expect status 401
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    # def test_partial_update_without_authentication(self):
-    #     """
-    #     Test partial update a user without authentication.
-    #     This should fail
-    #     """
+    def test_partial_update_without_authentication(self):
+        """
+        Test partial update a user without authentication.
+        This should fail
+        """
+        payload = self.sample_payload()
+        # Create user
+        user = get_user_model().objects.create_user(**payload)
+        # Make patch request
+        res = self.client.patch(user_update_url(user.id),
+                                {'email': 'newEmail@test.com'})
+        # Expect status 401
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    # def test_delete_user_without_authentication(self):
-    #     """
-    #     Test delete a user without authentication.
-    #     This should fail
-    #     """
+    def test_delete_user_without_authentication(self):
+        """
+        Test delete a user without authentication.
+        This should fail
+        """
+        payload = self.sample_payload()
+        # Create user
+        user = get_user_model().objects.create_user(**payload)
+        # Make delete request
+        res = self.client.delete(user_update_url(user.id))
+        # Expect status 401
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class PrivateApiTests(TestCase):
@@ -359,12 +380,13 @@ class PrivateApiTests(TestCase):
         self.client.force_authenticate(user=self.user)
 
     def create_sample_user(self, email='user1@test.com',
-                           password='testpass123', name='user1'):
+                           password='testpass123', name='user1',
+                           **extra_params):
         """
         Create and return sample user
         """
         return get_user_model().objects.create_user(
-            email=email, password=password, name=name
+            email=email, password=password, name=name, **extra_params
         )
 
     def test_list_all_users_with_authentication(self):
@@ -395,3 +417,235 @@ class PrivateApiTests(TestCase):
         self.assertEqual(self.user.name, user.name)
         # Expect the password is not return
         self.assertNotIn('password', res.data)
+
+    def test_update_own_user_with_authentication(self):
+        """
+        Test the login user update their own info.
+        This should pass
+        """
+        payload = {
+            'email': 'newuser1@test.com',
+            'password': 'newuser1',
+            'name': 'newuser1',
+            'avatarURL': 'newuser1Avatar'
+        }
+        # user_url
+        user_url = user_update_url(self.user.id)
+        # Make put request
+        res = self.client.put(user_url, payload)
+        # Expect status 200
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        # Update user with the latest value from db
+        self.user.refresh_from_db()
+
+        # Expect other info match
+        self.assertEqual(self.user.email, payload['email'])
+        self.assertEqual(self.user.name, payload['name'])
+        self.assertEqual(self.user.avatarURL, payload['avatarURL'])
+        self.assertTrue(self.user.check_password(payload['password']))
+
+    def test_update_second_user_with_authentication(self):
+        """
+        Test the login user update info of another user.
+        This should fail.
+        """
+        payload = {
+            'email': 'user2@test.com',
+            'name': 'user2',
+            'password': 'user2pass',
+            'avatarURL': 'user2Avatar'
+        }
+        # Create another user
+        another_user = self.create_sample_user(**payload)
+        # Create another payload from payload
+        another_payload = {x: 'edit'+payload[x] for x in payload.keys()}
+        # Create user url
+        user_url = user_update_url(another_user.id)
+        # Make put request
+        res = self.client.put(user_url, another_payload)
+        # Expect status 403
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        # Refresh another_user
+        another_user.refresh_from_db()
+        # Expect info of another_user is the same as before
+        self.assertEqual(another_user.email, payload['email'])
+        self.assertEqual(another_user.name, payload['name'])
+        self.assertEqual(another_user.avatarURL, payload['avatarURL'])
+        self.assertTrue(another_user.check_password(payload['password']))
+
+    def test_partial_update_email_own_user_with_authentication(self):
+        """
+        Test the login user partial update email their own info.
+        This should pass
+        """
+        # Create user url
+        user_url = user_update_url(self.user.id)
+        email = 'user1newemail@test.com'
+        # Make patch request
+        res = self.client.patch(user_url, {'email': email})
+        # Expect status 200
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Refresh user
+        self.user.refresh_from_db()
+        # Expect email change
+        self.assertEqual(self.user.email, email)
+
+    def test_partial_update_email_second_user_with_authentication(self):
+        """
+        Test the login user partial update email of another user.
+        This should fail.
+        """
+        payload = {
+            'email': 'user2@test.com',
+            'name': 'user2',
+            'password': 'user2pass',
+            'avatarURL': 'user2Avatar'
+        }
+        # Create another user
+        another_user = self.create_sample_user(**payload)
+        new_email = 'user2newemail@test.com'
+        # Make patch request
+        res = self.client.patch(user_update_url(another_user.id),
+                                {'email': new_email})
+        # Refresh another_user
+        another_user.refresh_from_db()
+        # Expect status 403
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        # Expect email do not change
+        self.assertEqual(another_user.email, payload['email'])
+
+    def test_partial_update_name_own_user_with_authentication(self):
+        """
+        Test the login user partial update name their own info.
+        This should pass
+        """
+        # Create user url
+        user_url = user_update_url(self.user.id)
+        name = 'user1newname'
+        # Make patch request
+        res = self.client.patch(user_url, {'name': name})
+        # Expect status 200
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Refresh user
+        self.user.refresh_from_db()
+        # Expect name change
+        self.assertEqual(self.user.name, name)
+
+    def test_partial_update_name_second_user_with_authentication(self):
+        """
+        Test the login user partial update name of another user.
+        This should fail.
+        """
+        payload = {
+            'email': 'user2@test.com',
+            'name': 'user2',
+            'password': 'user2pass',
+            'avatarURL': 'user2Avatar'
+        }
+        # Create another user
+        another_user = self.create_sample_user(**payload)
+        new_name = 'user2newname'
+        # Make patch request
+        res = self.client.patch(user_update_url(another_user.id),
+                                {'name': new_name})
+        # Refresh another_user
+        another_user.refresh_from_db()
+        # Expect status 403
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        # Expect name do not change
+        self.assertEqual(another_user.name, payload['name'])
+
+    def test_partial_update_password_own_user_with_authentication(self):
+        """
+        Test the login user partial update email their own info.
+        This should pass
+        """
+        # Create user url
+        user_url = user_update_url(self.user.id)
+        password = 'user1newpassword'
+        # Make patch request
+        res = self.client.patch(user_url, {'password': password})
+        # Expect status 200
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Refresh user
+        self.user.refresh_from_db()
+        # Expect password change
+        self.assertTrue(self.user.check_password(password))
+
+    def test_partial_update_password_second_user_with_authentication(self):
+        """
+        Test the login user partial update email of another user.
+        This should fail.
+        """
+        payload = {
+            'email': 'user2@test.com',
+            'name': 'user2',
+            'password': 'user2pass',
+            'avatarURL': 'user2Avatar'
+        }
+        # Create another user
+        another_user = self.create_sample_user(**payload)
+        new_password = 'user2newpassword'
+        # Make patch request
+        res = self.client.patch(user_update_url(another_user.id),
+                                {'password': new_password})
+        # Refresh another_user
+        another_user.refresh_from_db()
+        # Expect status 403
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        # Expect password do not change
+        self.assertTrue(another_user.check_password(payload['password']))
+
+    def test_partial_update_avatar_own_user_with_authentication(self):
+        """
+        Test the login user partial update email their own info.
+        This should pass
+        """
+        # Create user url
+        user_url = user_update_url(self.user.id)
+        avatar = 'user1newavatar'
+        # Make patch request
+        res = self.client.patch(user_url, {'avatarURL': avatar})
+        # Expect status 200
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Refresh user
+        self.user.refresh_from_db()
+        # Expect avatar change
+        self.assertEqual(self.user.avatarURL, avatar)
+
+    def test_partial_update_avatar_second_user_with_authentication(self):
+        """
+        Test the login user partial update email of another user.
+        This should fail.
+        """
+        payload = {
+            'email': 'user2@test.com',
+            'name': 'user2',
+            'password': 'user2pass',
+            'avatarURL': 'user2Avatar'
+        }
+        # Create another user
+        another_user = self.create_sample_user(**payload)
+        new_avatar = 'user2newavatar'
+        # Make patch request
+        res = self.client.patch(user_update_url(another_user.id),
+                                {'avatarURL': new_avatar})
+        # Refresh another_user
+        another_user.refresh_from_db()
+        # Expect status 403
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        # Expect avatar do not change
+        self.assertEqual(another_user.avatarURL, payload['avatarURL'])
+
+    def test_delete_own_user_with_authentication(self):
+        """
+        Test the login user delete their own info.
+        This should pass
+        """
+
+    def test_delete_second_user_with_authentication(self):
+        """
+        Test the login user delete info of another user.
+        This should fail.
+        """

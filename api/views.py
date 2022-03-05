@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth import get_user_model
 
-from api import serializers
+from api import serializers, permissions
 
 
 class CreateUserAPIView(generics.CreateAPIView):
@@ -38,6 +38,19 @@ class RetrieveUserAPIView(generics.RetrieveAPIView):
     # authentication_classes and permission_classes always go together
     authentication_classes = (TokenAuthentication, )
     permission_classes = (IsAuthenticated, )
+
+
+class UpdateUserAPIView(generics.UpdateAPIView):
+    """
+    View for update user. Put and Patch
+    """
+    serializer_class = serializers.UserProfileSerializer
+    queryset = get_user_model().objects.all()
+    # Allow request accept token
+    # authentication_classes and permission_classes always go together
+    authentication_classes = (TokenAuthentication, )
+    permission_classes = (IsAuthenticated,
+                          permissions.ManageOwnProfilePermission)
 
 
 class UserLoginView(ObtainAuthToken):

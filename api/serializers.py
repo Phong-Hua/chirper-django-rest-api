@@ -37,6 +37,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
         )
         return user
 
+    # Define update method
+    def update(self, instance, validated_data):
+        """
+        Update user.
+        Hash the password.
+        """
+        # Remove password from validated_data
+        password = validated_data.pop('password', None)
+        # Run update user
+        user = super().update(instance, validated_data)
+        # Set password
+        user.set_password(password)
+        # Save
+        user.save()
+
+        return user
+
 
 # Since we use custom model that use email as username,
 # We need to define custom serializer for login
