@@ -25,6 +25,13 @@ def user_update_url(user_id):
     return reverse('api:user-update/', args=[user_id])
 
 
+def user_delete_url(user_id):
+    """
+    Return user delete user of a specific user
+    """
+    return reverse('api:user-delete/', args=[user_id])
+
+
 class PublicApiTests(TestCase):
     """
     Test api that do not require authentication
@@ -363,7 +370,7 @@ class PublicApiTests(TestCase):
         # Create user
         user = get_user_model().objects.create_user(**payload)
         # Make delete request
-        res = self.client.delete(user_update_url(user.id))
+        res = self.client.delete(user_delete_url(user.id))
         # Expect status 401
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -643,9 +650,32 @@ class PrivateApiTests(TestCase):
         Test the login user delete their own info.
         This should pass
         """
+        # Make delete request
+        res = self.client.delete(user_delete_url(self.user.id))
+        # Expect response is 204
+        self.assertEqual(res.status_code, status.HTTP_20_OK)
+        # Expect the user do not exist
+        user_exist = get_user_model().objects.filter(id=self.user.id).exists()
+        self.assertFalse(user_exist)
 
     def test_delete_second_user_with_authentication(self):
         """
         Test the login user delete info of another user.
         This should fail.
         """
+        payload = {
+            'email': 'user2@test.com',
+            'name': 'user2',
+            'password': 'user2pass',
+            'avatarURL': 'user2Avatar'
+        }
+        # Create another user
+        another_user = self.create_sample_user(**payload)
+        # Make delete request
+        res = self.client.delete(user_delete_url(another_user.id))
+        # Expect status 403
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        # Expect another_user still exist
+        user_exist = get_user_model().objects.\
+            filter(id=another_user.id).exists()
+        self.assertTrue(user_exist)
