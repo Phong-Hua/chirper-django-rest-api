@@ -30,10 +30,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
         """
 
         user = get_user_model().objects.create_user(
-            email=validated_data['email'],
-            name=validated_data['name'],
-            password=validated_data['password'],
-            avatarURL=validated_data['avatarURL']
+            # email=validated_data['email'],
+            # name=validated_data['name'],
+            # password=validated_data['password'],
+            **validated_data,
+            # avatarURL=validated_data['avatarURL']
         )
         return user
 

@@ -229,25 +229,25 @@ class PublicApiTests(TestCase):
         # Expect bad request status
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
-    # def test_create_user_no_avatarURL(self):
-    #     """
-    #     Test create user with no avatar.
-    #     Since avatar is not requried.
-    #     This should success
-    #     """
-    #     payload = self.sample_payload()
-    #     payload.pop('avatarURL', None)
-    #     # Make post request
-    #     res = self.create_user_request(payload)
-    #     # Expect 201 status
-    #     self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-    #     user = get_user_model().objects.get(**res.data)
-    #     # Expect other info match
-    #     self.assertEqual(user.email, payload['email'])
-    #     self.assertEqual(user.name, payload['name'])
-    #     self.assertTrue(user.check_password(payload['password']))
-    #     # Expect the avatarURL is an empty string
-    #     self.assertEqual(user.avatarURL, '')
+    def test_create_user_no_avatarURL(self):
+        """
+        Test create user with no avatar.
+        Since avatar is not requried.
+        This should success
+        """
+        payload = self.sample_payload()
+        payload.pop('avatarURL', None)
+        # Make post request
+        res = self.create_user_request(payload)
+        # Expect 201 status
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        user = get_user_model().objects.get(**res.data)
+        # Expect other info match
+        self.assertEqual(user.email, payload['email'])
+        self.assertEqual(user.name, payload['name'])
+        self.assertTrue(user.check_password(payload['password']))
+        # Expect the avatarURL is an empty string
+        self.assertEqual(user.avatarURL, '')
 
     def test_login_with_valid_credential(self):
         """
