@@ -53,33 +53,33 @@ class TweetModelTests(TestCase):
         tweet_count = self.first_user.tweets().count()
         self.assertEqual(tweet_count, 1)
 
-    # def test_create_tweet_with_empty_text(self):
-    #     """
-    #     Test create a tweet with empty content.
-    #     This should fail
-    #     """
-    #     payload = {
-    #         'text': '',
-    #         'author': self.first_user,
-    #         'replying_to': None
-    #     }
+    def test_create_tweet_with_empty_text(self):
+        """
+        Test create a tweet with empty content.
+        This should fail
+        """
+        payload = {
+            'text': '',
+            'author': self.first_user,
+            'replying_to': None
+        }
 
-    #     with self.assertRaises(ValueError):
-    #         Tweet.objects.create(**payload)
+        with self.assertRaises(ValueError):
+            Tweet.objects.create(**payload)
 
-    # def test_create_tweet_with_long_text(self):
-    #     """
-    #     Test create a tweet exceed max length = 160 character.
-    #     This should fail
-    #     """
-    #     payload = {
-    #         'text': self.sample_long_text(),
-    #         'author': self.first_user,
-    #         'replying_to': None
-    #     }
+    def test_create_tweet_with_long_text(self):
+        """
+        Test create a tweet exceed max length = 160 character.
+        This should fail
+        """
+        payload = {
+            'text': self.sample_long_text(),
+            'author': self.first_user,
+            'replying_to': None
+        }
 
-    #     with self.assertRaises(ValueError):
-    #         Tweet.objects.create(**payload)
+        with self.assertRaises(ValueError):
+            Tweet.objects.create(**payload)
 
     def test_create_tweet_with_none_text(self):
         """
@@ -92,21 +92,21 @@ class TweetModelTests(TestCase):
             'replying_to': None
         }
 
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValueError):
             Tweet.objects.create(**payload)
 
-    # def test_create_tweet_with_missing_text(self):
-    #     """
-    #     Test create a tweet with content is missing in payload.
-    #     This should fail
-    #     """
-    #     payload = {
-    #         'author': self.first_user,
-    #         'replying_to': None
-    #     }
+    def test_create_tweet_with_missing_text(self):
+        """
+        Test create a tweet with content is missing in payload.
+        This should fail
+        """
+        payload = {
+            'author': self.first_user,
+            'replying_to': None
+        }
 
-    #     with self.assertRaises(IntegrityError):
-    #         Tweet.objects.create(**payload)
+        with self.assertRaises(ValueError):
+            Tweet.objects.create(**payload)
 
     def test_create_tweet_with_none_author(self):
         """
@@ -119,7 +119,7 @@ class TweetModelTests(TestCase):
             'replying_to': None
         }
 
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValueError):
             Tweet.objects.create(**payload)
 
     def test_create_tweet_with_missing_author(self):
@@ -132,7 +132,7 @@ class TweetModelTests(TestCase):
             'replying_to': None
         }
 
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValueError):
             Tweet.objects.create(**payload)
 
     def test_create_tweet_with_missing_replying_to(self):
@@ -210,30 +210,30 @@ class TweetModelTests(TestCase):
         # Expect number of reply is 2
         self.assertEqual(reply_count, 2)
 
-    # def test_create_reply_with_long_text(self):
-    #     """
-    #     Test create a reply exceed max length (160 characters).
-    #     This should fail
-    #     """
-    #     # Create tweet
-    #     tweet_payload = {
-    #         'text': 'A sample tweet',
-    #         'author': self.first_user
-    #     }
-    #     tweet = Tweet.objects.create(**tweet_payload)
-    #     # Try to create a reply
-    #     reply_payload = {
-    #         'text': self.sample_long_text(),
-    #         'author': self.second_user,
-    #         'replying_to': tweet
-    #     }
-    #     # Expect create a reply raise exception
-    #     with self.assertRaises(ValueError):
-    #         Tweet.objects.create(**reply_payload)
+    def test_create_reply_with_long_text(self):
+        """
+        Test create a reply exceed max length (160 characters).
+        This should fail
+        """
+        # Create tweet
+        tweet_payload = {
+            'text': 'A sample tweet',
+            'author': self.first_user
+        }
+        tweet = Tweet.objects.create(**tweet_payload)
+        # Try to create a reply
+        reply_payload = {
+            'text': self.sample_long_text(),
+            'author': self.second_user,
+            'replying_to': tweet
+        }
+        # Expect create a reply raise exception
+        with self.assertRaises(ValueError):
+            Tweet.objects.create(**reply_payload)
 
-    #     # Expect the reply count is 0
-    #     reply_count = tweet.replies.count()
-    #     self.assertEqual(reply_count, 0)
+        # Expect the reply count is 0
+        reply_count = tweet.replies.count()
+        self.assertEqual(reply_count, 0)
 
     def test_like_a_tweet(self):
         """

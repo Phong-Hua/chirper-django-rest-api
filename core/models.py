@@ -82,6 +82,27 @@ class UserProfile(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
+class TweetManager(models.Manager):
+    """
+    Manager for tweet
+    """
+    def create(self, text=None, author=None, **extra_kwargs):
+        """
+        Create a tweet
+        """
+        if not text or len(text.strip()) == 0:
+            raise ValueError('The text is required')
+        if len(text) > 160:
+            raise ValueError('The text should not exceed 160 characters')
+        if not author:
+            raise ValueError('The author is required')
+        
+        tweet = Tweet(text=text, author=author, **extra_kwargs)
+        tweet.save(using=self._db)
+
+        return tweet
+
+
 class Tweet(models.Model):
     """
     Tweet model
@@ -123,6 +144,7 @@ class Tweet(models.Model):
         on_delete=models.CASCADE
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    objects = TweetManager()
 
     def replies(self):
         """
